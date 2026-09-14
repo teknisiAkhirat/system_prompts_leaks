@@ -351,17 +351,18 @@ function shortenPath(p) {
 }
 
 const views = DATA.views, clones = DATA.clones;
-const vDays = views.views.sort((a,b) => a.timestamp.localeCompare(b.timestamp));
-const cDays = clones.clones.sort((a,b) => a.timestamp.localeCompare(b.timestamp));
-const peakView = vDays.reduce((a,b) => b.count > a.count ? b : a);
-const avgViews = Math.round(views.count / vDays.length);
+const vDays = (views.views || []).sort((a,b) => a.timestamp.localeCompare(b.timestamp));
+const cDays = (clones.clones || []).sort((a,b) => a.timestamp.localeCompare(b.timestamp));
+const peakView = vDays.length > 0 ? vDays.reduce((a,b) => b.count > a.count ? b : a) : {count: 0, timestamp: ''};
+const avgViews = vDays.length > 0 ? Math.round(views.count / vDays.length) : 0;
+const avgClones = cDays.length > 0 ? Math.round(clones.count / cDays.length) : 0;
 const last7 = vDays.slice(-7).reduce((s,d) => s + d.count, 0);
 const prev7 = vDays.slice(-14,-7).reduce((s,d) => s + d.count, 0);
 const trend = prev7 ? Math.round((last7 - prev7) / prev7 * 100) : 0;
 const trendCls = trend >= 0 ? 'trend-up' : 'trend-down';
-const sinceStart = new Date(vDays[0].timestamp);
-const sinceFmt = sinceStart.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-const dayCount = Math.round((Date.now() - sinceStart.getTime()) / 86400000);
+const sinceStart = vDays.length > 0 ? new Date(vDays[0].timestamp) : new Date();
+const sinceFmt = vDays.length > 0 ? sinceStart.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'N/A';
+const dayCount = vDays.length > 0 ? Math.round((Date.now() - sinceStart.getTime()) / 86400000) : 0;
 
 const starSeries = (DATA.stars_series||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
 const curStars = starSeries.length ? starSeries[starSeries.length-1].stars : null;
@@ -403,8 +404,8 @@ if (curStars != null) {
 const statCards = [
   { l:'Total Views', v:fmt(views.count), s:fmt(views.uniques)+' unique', t:`since ${sinceFmt} · ${dayCount}d` },
   { l:'Total Clones', v:fmt(clones.count), s:fmt(clones.uniques)+' unique' },
-  { l:'Daily Avg', v:fmt(avgViews), s:fmt(Math.round(clones.count/cDays.length))+' clones' },
-  { l:'Peak Day', v:fmt(peakView.count), s:peakView.timestamp.slice(0,10) },
+  { l:'Daily Avg', v:fmt(avgViews), s:fmt(avgClones)+' clones' },
+  { l:'Peak Day', v:fmt(peakView.count), s:peakView.timestamp ? peakView.timestamp.slice(0,10) : 'N/A' },
   { l:'7-Day Trend', v:`<span class="${trendCls}">${trend>=0?'+':''}${trend}%</span>`, s:fmt(last7)+' vs '+fmt(prev7) },
 ];
 if (curStars != null) {
